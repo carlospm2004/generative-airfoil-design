@@ -29,7 +29,7 @@ La idea es ir avanzando por fases, aplicando en cada una lo que vamos viendo en 
 
 Con Python:
 
-- [ ] Descargar la base de datos de perfiles de la Universidad de Illinois (UIUC).
+- [x] Descargar la base de datos de perfiles de la Universidad de Illinois (UIUC).
 - [ ] Leer cada archivo de coordenadas y detectar los que vengan con errores o formatos raros.
 - [ ] Limpiar y normalizar todos los perfiles a un formato común.
 - [ ] Calcular características de cada perfil: espesor, curvatura y otras propiedades geométricas.
@@ -73,10 +73,21 @@ La herramienta irá creciendo con el proyecto: en cada fase se le añadirán los
 
 > Las técnicas concretas de cada fase se decidirán a medida que se vean en el máster.
 
+## Cómo obtener los datos
+
+Los datos no se incluyen en el repositorio: se descargan de la fuente original y se preparan con un script.
+
+1. Descarga [coord_seligFmt.zip](https://m-selig.ae.illinois.edu/ads/archives/coord_seligFmt.zip) desde el navegador. La web de la UIUC bloquea las descargas automáticas, por eso este paso es manual.
+2. Guarda el zip en la carpeta `data/` de la raíz del repositorio (créala si no existe).
+3. Desde la raíz del repositorio, ejecuta:
+
+```bash
+   py src/preparar_datos_uiuc.py
+```
+
+El script comprueba que el zip es válido y descomprime los perfiles en `data/raw/coord_seligFmt/`. Con la versión de febrero de 2026 de la base de datos se obtienen **1.665 perfiles**.
 
 ## Fuentes de datos
 
 - [UIUC Airfoil Coordinates Database](https://m-selig.ae.illinois.edu/ads/coord_database.html): geometría de unos 1.650 perfiles reales.
 - [XFOIL](https://web.mit.edu/drela/Public/web/xfoil/): simulador aerodinámico gratuito para calcular el rendimiento de los perfiles.
-
-
