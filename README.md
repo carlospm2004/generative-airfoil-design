@@ -23,6 +23,14 @@ Construir, paso a paso, un sistema que:
 
 La idea es ir avanzando por fases, aplicando en cada una lo que vamos viendo en el máster.
 
+## Alcance
+
+El proyecto se centra en **perfiles para aeronaves de ala fija en régimen subsónico**, con números de Reynolds entre 5·10⁴ y 3·10⁶: drones, alas volantes, planeadores y aviación ligera.
+
+Es el régimen en el que XFOIL, el simulador del proyecto, es fiable. Los aviones comerciales vuelan a velocidades transónicas, donde aparecen ondas de choque que XFOIL no puede modelar.
+
+La base de datos conserva todos los perfiles válidos, incluidos los de hélices, rotores y turbinas eólicas: aportan variedad de formas al modelo, y filtrar por aplicación se puede hacer más adelante.
+
 ## Pasos que voy a seguir
 
 ### Fase 1 — Datos (en curso)
@@ -30,8 +38,8 @@ La idea es ir avanzando por fases, aplicando en cada una lo que vamos viendo en 
 Con Python:
 
 - [x] Descargar la base de datos de perfiles de la Universidad de Illinois (UIUC).
-- [ ] Leer cada archivo de coordenadas y detectar los que vengan con errores o formatos raros.
-- [ ] Limpiar y normalizar todos los perfiles a un formato común.
+- [x] Leer cada archivo de coordenadas y detectar los que vengan con errores o formatos raros.
+- [x] Limpiar y normalizar todos los perfiles a un formato común (ver [`docs/limpieza.md`](docs/limpieza.md)).
 - [ ] Calcular características de cada perfil: espesor, curvatura y otras propiedades geométricas.
 - [ ] Clasificar los perfiles:
   - por familia, a partir del nombre del archivo;
@@ -75,17 +83,50 @@ La herramienta irá creciendo con el proyecto: en cada fase se le añadirán los
 
 ## Cómo obtener los datos
 
-Los datos no se incluyen en el repositorio: se descargan de la fuente original y se preparan con un script.
+Los datos no se incluyen en el repositorio: se descargan de la fuente original y se preparan con scripts.
 
-1. Descarga [coord_seligFmt.zip](https://m-selig.ae.illinois.edu/ads/archives/coord_seligFmt.zip) desde el navegador. La web de la UIUC bloquea las descargas automáticas, por eso este paso es manual.
-2. Guarda el zip en la carpeta `data/` de la raíz del repositorio (créala si no existe).
-3. Desde la raíz del repositorio, ejecuta:
+### 1. Preparar el entorno
+
+Desde la raíz del repositorio:
 
 ```bash
-   py src/preparar_datos_uiuc.py
+python -m venv .venv
+source .venv/Scripts/activate      # Git Bash (en PowerShell: .venv\Scripts\activate)
+pip install -r requirements.txt
 ```
 
-El script comprueba que el zip es válido y descomprime los perfiles en `data/raw/coord_seligFmt/`. Con la versión de febrero de 2026 de la base de datos se obtienen **1.665 perfiles**.
+### 2. Descargar los perfiles
+
+Descarga [coord_seligFmt.zip](https://m-selig.ae.illinois.edu/ads/archives/coord_seligFmt.zip) desde el navegador y guárdalo en la carpeta `data/` de la raíz del repositorio (créala si no existe). La web de la UIUC bloquea las descargas automáticas, por eso este paso es manual.
+
+### 3. Generar los datos
+
+Con el entorno virtual activado, desde la raíz del repositorio:
+
+```bash
+python src/preparar_datos_uiuc.py   # descomprime los 1.665 perfiles en data/raw/
+python src/generar_procesados.py    # limpia y normaliza: 1.656 perfiles en data/processed/perfiles/
+python src/validar_limpieza.py      # comprueba la limpieza y genera data/processed/resumen_limpieza.csv
+```
+
+Resultados con la versión de febrero de 2026 de la base de datos: **1.665 perfiles originales**, 9 excluidos y **1.656 perfiles limpios**, todos validados.
+
+## Estructura del repositorio
+
+```
+├── data/                  ← datos (no se suben; se regeneran con los scripts)
+│   ├── raw/               ← perfiles originales de la UIUC
+│   └── processed/         ← perfiles limpios y tablas resumen
+├── docs/                  ← análisis y decisiones del proyecto
+│   ├── formato_dat.md     ← análisis del formato de los archivos originales
+│   └── limpieza.md        ← proceso de limpieza y normalización
+├── notebooks/             ← exploración
+├── src/                   ← código
+│   ├── lector.py          ← lee un .dat y detecta anomalías
+│   ├── limpieza.py        ← exclusiones, duplicados y normalización
+│   └── ...                ← scripts de preparación, generación y validación
+└── requirements.txt       ← dependencias de Python
+```
 
 ## Fuentes de datos
 
