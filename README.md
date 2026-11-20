@@ -40,7 +40,7 @@ Con Python:
 - [x] Descargar la base de datos de perfiles de la Universidad de Illinois (UIUC).
 - [x] Leer cada archivo de coordenadas y detectar los que vengan con errores o formatos raros.
 - [x] Limpiar y normalizar todos los perfiles a un formato común (ver [`docs/limpieza.md`](docs/limpieza.md)).
-- [ ] Calcular características de cada perfil: espesor, curvatura y otras propiedades geométricas.
+- [x] Calcular características de cada perfil: espesor, curvatura y otras propiedades geométricas (ver [`docs/geometria.md`](docs/geometria.md)).
 - [ ] Clasificar los perfiles:
   - por familia, a partir del nombre del archivo;
   - por uso (planeador, ala volante, hélice, turbina eólica…), extrayendo la descripción de cada perfil de la web de la UIUC.
@@ -107,9 +107,11 @@ Con el entorno virtual activado, desde la raíz del repositorio:
 python src/preparar_datos_uiuc.py   # descomprime los 1.665 perfiles en data/raw/
 python src/generar_procesados.py    # limpia y normaliza: 1.656 perfiles en data/processed/perfiles/
 python src/validar_limpieza.py      # comprueba la limpieza y genera data/processed/resumen_limpieza.csv
+python src/calcular_geometria.py    # características geométricas en data/processed/geometria.csv
+python src/validar_geometria.py     # comprueba la geometría con los NACA de 4 cifras
 ```
 
-Resultados con la versión de febrero de 2026 de la base de datos: **1.665 perfiles originales**, 9 excluidos y **1.656 perfiles limpios**, todos validados.
+Resultados con la versión de febrero de 2026 de la base de datos: **1.665 perfiles originales**, 9 excluidos y **1.656 perfiles limpios**, todos validados, con sus características geométricas calculadas.
 
 ## Estructura del repositorio
 
@@ -119,11 +121,13 @@ Resultados con la versión de febrero de 2026 de la base de datos: **1.665 perfi
 │   └── processed/         ← perfiles limpios y tablas resumen
 ├── docs/                  ← análisis y decisiones del proyecto
 │   ├── formato_dat.md     ← análisis del formato de los archivos originales
-│   └── limpieza.md        ← proceso de limpieza y normalización
+│   ├── limpieza.md        ← proceso de limpieza y normalización
+│   └── geometria.md       ← características geométricas y su validación
 ├── notebooks/             ← exploración
 ├── src/                   ← código
 │   ├── lector.py          ← lee un .dat y detecta anomalías
 │   ├── limpieza.py        ← exclusiones, duplicados y normalización
+│   ├── geometria.py       ← espesor, curvatura, borde de salida y área
 │   └── ...                ← scripts de preparación, generación y validación
 └── requirements.txt       ← dependencias de Python
 ```
