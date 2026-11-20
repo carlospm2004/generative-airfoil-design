@@ -49,10 +49,10 @@ def caracteristicas(puntos):
         "x_t_max": x[i_t],
         "f_max": linea_media[i_f],
         "x_f_max": x[i_f],
+        "f_min": linea_media.min(),
         "espesor_bs": espesor_bs,
         "area": area,
     }
-
 
 if __name__ == "__main__":
     from limpieza import limpiar_perfil
