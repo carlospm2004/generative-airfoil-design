@@ -32,17 +32,25 @@ def espesor_y_linea_media(puntos):
 
 
 def caracteristicas(puntos):
-    """Devuelve un diccionario con t/c, x_t/c, f/c y x_f/c."""
+    """Devuelve un diccionario con las características geométricas del perfil."""
     x, espesor, linea_media = espesor_y_linea_media(puntos)
 
     i_t = np.argmax(espesor)
     i_f = np.argmax(linea_media)
+
+    # Espesor del borde de salida: distancia entre el primer y el último punto
+    espesor_bs = np.sqrt(((puntos[0] - puntos[-1]) ** 2).sum())
+
+    # Área: integral del espesor a lo largo de la cuerda (regla del trapecio)
+    area = np.trapezoid(espesor, x)
 
     return {
         "t_max": espesor[i_t],
         "x_t_max": x[i_t],
         "f_max": linea_media[i_f],
         "x_f_max": x[i_f],
+        "espesor_bs": espesor_bs,
+        "area": area,
     }
 
 
