@@ -29,11 +29,11 @@ El proyecto se centra en **perfiles para aeronaves de ala fija en régimen subs�
 
 Es el régimen en el que XFOIL, el simulador del proyecto, es fiable. Los aviones comerciales vuelan a velocidades transónicas, donde aparecen ondas de choque que XFOIL no puede modelar.
 
-La base de datos conserva todos los perfiles válidos, incluidos los de hélices, rotores y turbinas eólicas: aportan variedad de formas al modelo, y filtrar por aplicación se puede hacer más adelante.
+La base de datos conserva todos los perfiles válidos, incluidos los de hélices, rotores y turbinas eólicas: aportan variedad de formas al modelo. Cada perfil guarda su descripción original, por si más adelante se quiere filtrar por aplicación.
 
 ## Pasos que voy a seguir
 
-### Fase 1 — Datos (en curso)
+### Fase 1 — Datos ✅
 
 Con Python:
 
@@ -41,15 +41,15 @@ Con Python:
 - [x] Leer cada archivo de coordenadas y detectar los que vengan con errores o formatos raros.
 - [x] Limpiar y normalizar todos los perfiles a un formato común (ver [`docs/limpieza.md`](docs/limpieza.md)).
 - [x] Calcular características de cada perfil: espesor, curvatura y otras propiedades geométricas (ver [`docs/geometria.md`](docs/geometria.md)).
-- [ ] Clasificar los perfiles:
-  - por familia, a partir del nombre del archivo;
-  - por uso (planeador, ala volante, hélice, turbina eólica…), extrayendo la descripción de cada perfil de la web de la UIUC.
+- [x] Clasificar los perfiles por familia (diseñador o serie), a partir de la descripción de cada perfil en la web de la UIUC, y reunirlo todo en un catálogo final (ver [`docs/clasificacion.md`](docs/clasificacion.md)).
+
+> La clasificación por uso (planeador, hélice, turbina eólica…) se descartó: solo el 24 % de las descripciones lo indican. Queda como posible proyecto de aprendizaje automático: predecir el uso de un perfil a partir de su geometría.
 
 ### Herramienta de visualización
 
 En cuanto los datos estén limpios, crearé una interfaz para explorarlos:
 
-- Catálogo de perfiles, filtrable por familia, uso y características.
+- Catálogo de perfiles, filtrable por familia y características.
 - Ficha de cada perfil, con su forma dibujada y sus datos.
 - Comparador para superponer varios perfiles y ver sus diferencias.
 - Mapa del dataset, donde cada punto es un perfil y se pueden ver agrupaciones.
@@ -99,6 +99,8 @@ pip install -r requirements.txt
 
 Descarga [coord_seligFmt.zip](https://m-selig.ae.illinois.edu/ads/archives/coord_seligFmt.zip) desde el navegador y guárdalo en la carpeta `data/` de la raíz del repositorio (créala si no existe). La web de la UIUC bloquea las descargas automáticas, por eso este paso es manual.
 
+Guarda también la página [coord_database.html](https://m-selig.ae.illinois.edu/ads/coord_database.html) desde el navegador (Guardar como → solo HTML) en `data/raw/coord_database.html`. De ella se sacan las descripciones de los perfiles.
+
 ### 3. Generar los datos
 
 Con el entorno virtual activado, desde la raíz del repositorio:
@@ -109,25 +111,30 @@ python src/generar_procesados.py    # limpia y normaliza: 1.656 perfiles en data
 python src/validar_limpieza.py      # comprueba la limpieza y genera data/processed/resumen_limpieza.csv
 python src/calcular_geometria.py    # características geométricas en data/processed/geometria.csv
 python src/validar_geometria.py     # comprueba la geometría con los NACA de 4 cifras
+python src/descripciones.py         # descripciones de la web en data/processed/descripciones.csv
+python src/familias.py              # familia de cada perfil en data/processed/familias.csv
+python src/generar_catalogo.py      # catálogo final en data/processed/perfiles.csv
 ```
 
-Resultados con la versión de febrero de 2026 de la base de datos: **1.665 perfiles originales**, 9 excluidos y **1.656 perfiles limpios**, todos validados, con sus características geométricas calculadas.
+Resultados con la versión de febrero de 2026 de la base de datos: **1.665 perfiles originales**, 9 excluidos y **1.656 perfiles limpios**, todos validados, con sus características geométricas y su familia. El catálogo final es `data/processed/perfiles.csv`.
 
 ## Estructura del repositorio
 
 ```
 ├── data/                  ← datos (no se suben; se regeneran con los scripts)
-│   ├── raw/               ← perfiles originales de la UIUC
+│   ├── raw/               ← perfiles originales y página de la UIUC
 │   └── processed/         ← perfiles limpios y tablas resumen
 ├── docs/                  ← análisis y decisiones del proyecto
 │   ├── formato_dat.md     ← análisis del formato de los archivos originales
 │   ├── limpieza.md        ← proceso de limpieza y normalización
-│   └── geometria.md       ← características geométricas y su validación
+│   ├── geometria.md       ← características geométricas y su validación
+│   └── clasificacion.md   ← familias y catálogo final
 ├── notebooks/             ← exploración
 ├── src/                   ← código
 │   ├── lector.py          ← lee un .dat y detecta anomalías
 │   ├── limpieza.py        ← exclusiones, duplicados y normalización
 │   ├── geometria.py       ← espesor, curvatura, borde de salida y área
+│   ├── familias.py        ← familia de cada perfil a partir de su descripción
 │   └── ...                ← scripts de preparación, generación y validación
 └── requirements.txt       ← dependencias de Python
 ```
