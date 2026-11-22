@@ -58,6 +58,11 @@ En cuanto los datos estén limpios, crearé una interfaz para explorarlos. Tendr
 - Comparador para superponer varios perfiles y ver sus diferencias.
 - Mapa del dataset, donde cada punto es un perfil y se pueden ver agrupaciones.
 
+Avance:
+
+- [x] API con FastAPI para consultar el catálogo, la ficha y las coordenadas de cada perfil (ver [`docs/api.md`](docs/api.md)).
+- [ ] Interfaz web.
+
 La herramienta irá creciendo con el proyecto: en cada fase se le añadirán los nuevos resultados, hasta convertirse en la interfaz final.
 
 ### Fase 2 — Generación de datos a gran escala
@@ -122,23 +127,30 @@ python src/generar_catalogo.py      # catálogo final en data/processed/perfiles
 
 Resultados con la versión de febrero de 2026 de la base de datos: **1.665 perfiles originales**, 9 excluidos y **1.656 perfiles limpios**, todos validados, con sus características geométricas y su familia. El catálogo final es `data/processed/perfiles.csv`.
 
-### 4. Cargar la base de datos
+### 4. Cargar la base de datos y arrancar la API
 
 Hace falta tener [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y abierto. Desde la raíz del repositorio:
 
 ```bash
 cp .env.example .env               # y cambia la contraseña en .env
-docker compose up -d               # levanta PostgreSQL y crea las tablas
+docker compose up -d --build       # levanta PostgreSQL (crea las tablas) y la API
 python src/cargar_bd.py            # carga el catálogo y las coordenadas, y valida la carga
 ```
 
 Resultado: **1.656 perfiles** en la tabla `perfiles` y **110.767 puntos** en la tabla `coordenadas`. El script se puede ejecutar tantas veces como se quiera: cada vez vacía las tablas y las vuelve a cargar.
 
-Para parar la base sin perder los datos: `docker compose down`.
+La API queda en `http://localhost:8000`, con su documentación interactiva en [`http://localhost:8000/docs`](http://localhost:8000/docs).
+
+Para pararlo todo sin perder los datos: `docker compose down`.
 
 ## Estructura del repositorio
 
 ```
+├── api/                   ← API (FastAPI), un servicio aparte con su propia imagen de Docker
+│   ├── main.py            ← endpoints
+│   ├── bd.py              ← conexión y consultas a PostgreSQL
+│   ├── Dockerfile         ← imagen de la API
+│   └── requirements.txt   ← dependencias solo de la API
 ├── data/                  ← datos (no se suben; se regeneran con los scripts)
 │   ├── raw/               ← perfiles originales y página de la UIUC
 │   └── processed/         ← perfiles limpios y tablas resumen
@@ -147,7 +159,8 @@ Para parar la base sin perder los datos: `docker compose down`.
 │   ├── limpieza.md        ← proceso de limpieza y normalización
 │   ├── geometria.md       ← características geométricas y su validación
 │   ├── clasificacion.md   ← familias y catálogo final
-│   └── base_datos.md      ← base de datos: esquema, carga y validación
+│   ├── base_datos.md      ← base de datos: esquema, carga y validación
+│   └── api.md             ← API: endpoints, decisiones y Docker
 ├── notebooks/             ← exploración
 ├── sql/
 │   └── esquema.sql        ← tablas de la base de datos
@@ -158,7 +171,7 @@ Para parar la base sin perder los datos: `docker compose down`.
 │   ├── familias.py        ← familia de cada perfil a partir de su descripción
 │   ├── cargar_bd.py       ← carga el catálogo y las coordenadas en PostgreSQL
 │   └── ...                ← scripts de preparación, generación y validación
-├── docker-compose.yml     ← servicio de PostgreSQL
+├── docker-compose.yml     ← servicios de PostgreSQL y de la API
 ├── .env.example           ← plantilla de las variables de entorno (copiar a .env)
 └── requirements.txt       ← dependencias de Python
 ```
