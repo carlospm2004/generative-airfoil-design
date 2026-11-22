@@ -47,11 +47,11 @@ Con Python:
 
 ### Base de datos ✅
 
-- [x] Montar una base de datos PostgreSQL en Docker y cargar en ella el catálogo y las coordenadas de todos los perfiles (ver [`docs/base_datos.md`](docs/base_datos.md)).
+- [x] Montar una base de datos PostgreSQL en Docker y cargar en ella el catálogo y las coordenadas de todos los perfiles (ver [`docs/base-datos.md`](docs/base-datos.md)).
 
-### Herramienta de visualización
+### Herramienta de visualización ✅
 
-En cuanto los datos estén limpios, crearé una interfaz para explorarlos. Tendrá dos partes: una API (backend) que consulta la base de datos y una interfaz web (frontend) que muestra los resultados:
+Una interfaz para explorar los datos, con dos partes: una API (backend) que consulta la base de datos y una interfaz web (frontend) que muestra los resultados:
 
 - Catálogo de perfiles, filtrable por familia y características.
 - Ficha de cada perfil, con su forma dibujada y sus datos.
@@ -61,7 +61,7 @@ En cuanto los datos estén limpios, crearé una interfaz para explorarlos. Tendr
 Avance:
 
 - [x] API con FastAPI para consultar el catálogo, la ficha y las coordenadas de cada perfil (ver [`docs/api.md`](docs/api.md)).
-- [ ] Interfaz web.
+- [x] Interfaz web con catálogo, ficha, comparador y mapa del dataset (ver [`docs/frontend.md`](docs/frontend.md)).
 
 La herramienta irá creciendo con el proyecto: en cada fase se le añadirán los nuevos resultados, hasta convertirse en la interfaz final.
 
@@ -127,19 +127,19 @@ python src/generar_catalogo.py      # catálogo final en data/processed/perfiles
 
 Resultados con la versión de febrero de 2026 de la base de datos: **1.665 perfiles originales**, 9 excluidos y **1.656 perfiles limpios**, todos validados, con sus características geométricas y su familia. El catálogo final es `data/processed/perfiles.csv`.
 
-### 4. Cargar la base de datos y arrancar la API
+### 4. Cargar la base de datos y arrancar la aplicación
 
 Hace falta tener [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y abierto. Desde la raíz del repositorio:
 
 ```bash
 cp .env.example .env               # y cambia la contraseña en .env
-docker compose up -d --build       # levanta PostgreSQL (crea las tablas) y la API
+docker compose up -d --build       # levanta PostgreSQL (crea las tablas), la API y la interfaz web
 python src/cargar_bd.py            # carga el catálogo y las coordenadas, y valida la carga
 ```
 
 Resultado: **1.656 perfiles** en la tabla `perfiles` y **110.767 puntos** en la tabla `coordenadas`. El script se puede ejecutar tantas veces como se quiera: cada vez vacía las tablas y las vuelve a cargar.
 
-La API queda en `http://localhost:8000`, con su documentación interactiva en [`http://localhost:8000/docs`](http://localhost:8000/docs).
+La interfaz web queda en [`http://localhost:8080`](http://localhost:8080). La API, en `http://localhost:8000`, con su documentación interactiva en [`http://localhost:8000/docs`](http://localhost:8000/docs).
 
 Para pararlo todo sin perder los datos: `docker compose down`.
 
@@ -159,8 +159,13 @@ Para pararlo todo sin perder los datos: `docker compose down`.
 │   ├── limpieza.md        ← proceso de limpieza y normalización
 │   ├── geometria.md       ← características geométricas y su validación
 │   ├── clasificacion.md   ← familias y catálogo final
-│   ├── base_datos.md      ← base de datos: esquema, carga y validación
-│   └── api.md             ← API: endpoints, decisiones y Docker
+│   ├── base-datos.md      ← base de datos: esquema, carga y validación
+│   ├── api.md             ← API: endpoints, decisiones y Docker
+│   └── frontend.md        ← interfaz web: vistas, arquitectura y Docker
+├── frontend/              ← interfaz web, servida por nginx
+│   ├── web/               ← index.html, estilos.css y app.js
+│   ├── nginx.conf         ← sirve la web y reenvía /api a la API
+│   └── Dockerfile         ← imagen del frontend
 ├── notebooks/             ← exploración
 ├── sql/
 │   └── esquema.sql        ← tablas de la base de datos
@@ -171,7 +176,7 @@ Para pararlo todo sin perder los datos: `docker compose down`.
 │   ├── familias.py        ← familia de cada perfil a partir de su descripción
 │   ├── cargar_bd.py       ← carga el catálogo y las coordenadas en PostgreSQL
 │   └── ...                ← scripts de preparación, generación y validación
-├── docker-compose.yml     ← servicios de PostgreSQL y de la API
+├── docker-compose.yml     ← servicios de PostgreSQL, la API y la interfaz web
 ├── .env.example           ← plantilla de las variables de entorno (copiar a .env)
 └── requirements.txt       ← dependencias de Python
 ```
