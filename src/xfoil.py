@@ -16,22 +16,24 @@ CARPETA_PERFILES = Path("data/processed/perfiles")
 
 # Condiciones de cálculo
 ALFA_MIN = -5.0
-ALFA_MAX = 15.0
+ALFA_MAX = 20.0
 PASO_ALFA = 0.5
 NCRIT = 9
 ITERACIONES = 100
+N_PANELES = 160
 TIEMPO_MAXIMO = 60          # segundos por polar; si se supera, se da por fallida
 
 COLUMNAS = ["alpha", "cl", "cd", "cdp", "cm", "top_xtr", "bot_xtr"]
 LINEAS_CABECERA = 12        # líneas de texto antes de los datos en el archivo de la polar
 
 
-def comandos_xfoil(reynolds):
+def comandos_xfoil(reynolds, n_paneles=N_PANELES):
     """Devuelve los comandos que se escriben en XFOIL, uno por línea."""
     return "\n".join([
         "PLOP", "G F", "",                              # desactiva la ventana de gráficos
         "LOAD perfil.dat",
-        "PANE",                                         # remalla con 160 paneles
+        "PPAR", f"N {n_paneles}", "", "",               # número de paneles (dos Enter para salir)
+        "PANE",                                         # remalla con ese número de paneles
         "OPER",
         f"VISC {reynolds:.0f}",
         "VPAR", f"N {NCRIT}", "",                       # factor de transición
@@ -56,7 +58,7 @@ def leer_polar(ruta):
     return polar.sort_values("alpha").drop_duplicates("alpha").reset_index(drop=True)
 
 
-def calcular_polar(archivo, reynolds):
+def calcular_polar(archivo, reynolds, n_paneles=N_PANELES):
     """Calcula la polar de un perfil a un Reynolds.
 
     Devuelve (estado, polar, segundos), con estado "ok", "sin_convergencia" o "tiempo_agotado".
@@ -68,7 +70,7 @@ def calcular_polar(archivo, reynolds):
         try:
             subprocess.run(
                 [XFOIL],
-                input=comandos_xfoil(reynolds),
+                input=comandos_xfoil(reynolds, n_paneles),
                 text=True,
                 cwd=carpeta,
                 capture_output=True,
