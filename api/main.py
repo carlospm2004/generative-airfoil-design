@@ -71,3 +71,27 @@ def perfiles(
     sql += " ORDER BY archivo"
 
     return consultar(sql, parametros)
+
+@app.get("/perfiles/{archivo}")
+def perfil(archivo: str):
+    """Devuelve los datos de un perfil."""
+    filas = consultar(f"SELECT {COLUMNAS_CATALOGO} FROM perfiles WHERE archivo = %s", (archivo,))
+    if not filas:
+        raise HTTPException(status_code=404, detail=f"No existe el perfil {archivo}")
+    return filas[0]
+
+
+@app.get("/perfiles/{archivo}/coordenadas")
+def coordenadas(archivo: str):
+    """Devuelve las coordenadas del contorno de un perfil, en orden Selig."""
+    filas = consultar(
+        "SELECT x, y FROM coordenadas WHERE archivo = %s ORDER BY orden",
+        (archivo,),
+    )
+    if not filas:
+        raise HTTPException(status_code=404, detail=f"No existe el perfil {archivo}")
+    return {
+        "archivo": archivo,
+        "x": [fila["x"] for fila in filas],
+        "y": [fila["y"] for fila in filas],
+    }
