@@ -45,9 +45,13 @@ Con Python:
 
 > La clasificación por uso (planeador, hélice, turbina eólica…) se descartó: solo el 24 % de las descripciones lo indican. Queda como posible proyecto de aprendizaje automático: predecir el uso de un perfil a partir de su geometría.
 
+### Base de datos ✅
+
+- [x] Montar una base de datos PostgreSQL en Docker y cargar en ella el catálogo y las coordenadas de todos los perfiles (ver [`docs/base_datos.md`](docs/base_datos.md)).
+
 ### Herramienta de visualización
 
-En cuanto los datos estén limpios, crearé una interfaz para explorarlos:
+En cuanto los datos estén limpios, crearé una interfaz para explorarlos. Tendrá dos partes: una API (backend) que consulta la base de datos y una interfaz web (frontend) que muestra los resultados:
 
 - Catálogo de perfiles, filtrable por familia y características.
 - Ficha de cada perfil, con su forma dibujada y sus datos.
@@ -118,6 +122,20 @@ python src/generar_catalogo.py      # catálogo final en data/processed/perfiles
 
 Resultados con la versión de febrero de 2026 de la base de datos: **1.665 perfiles originales**, 9 excluidos y **1.656 perfiles limpios**, todos validados, con sus características geométricas y su familia. El catálogo final es `data/processed/perfiles.csv`.
 
+### 4. Cargar la base de datos
+
+Hace falta tener [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y abierto. Desde la raíz del repositorio:
+
+```bash
+cp .env.example .env               # y cambia la contraseña en .env
+docker compose up -d               # levanta PostgreSQL y crea las tablas
+python src/cargar_bd.py            # carga el catálogo y las coordenadas, y valida la carga
+```
+
+Resultado: **1.656 perfiles** en la tabla `perfiles` y **110.767 puntos** en la tabla `coordenadas`. El script se puede ejecutar tantas veces como se quiera: cada vez vacía las tablas y las vuelve a cargar.
+
+Para parar la base sin perder los datos: `docker compose down`.
+
 ## Estructura del repositorio
 
 ```
@@ -128,14 +146,20 @@ Resultados con la versión de febrero de 2026 de la base de datos: **1.665 perfi
 │   ├── formato_dat.md     ← análisis del formato de los archivos originales
 │   ├── limpieza.md        ← proceso de limpieza y normalización
 │   ├── geometria.md       ← características geométricas y su validación
-│   └── clasificacion.md   ← familias y catálogo final
+│   ├── clasificacion.md   ← familias y catálogo final
+│   └── base_datos.md      ← base de datos: esquema, carga y validación
 ├── notebooks/             ← exploración
+├── sql/
+│   └── esquema.sql        ← tablas de la base de datos
 ├── src/                   ← código
 │   ├── lector.py          ← lee un .dat y detecta anomalías
 │   ├── limpieza.py        ← exclusiones, duplicados y normalización
 │   ├── geometria.py       ← espesor, curvatura, borde de salida y área
 │   ├── familias.py        ← familia de cada perfil a partir de su descripción
+│   ├── cargar_bd.py       ← carga el catálogo y las coordenadas en PostgreSQL
 │   └── ...                ← scripts de preparación, generación y validación
+├── docker-compose.yml     ← servicio de PostgreSQL
+├── .env.example           ← plantilla de las variables de entorno (copiar a .env)
 └── requirements.txt       ← dependencias de Python
 ```
 
