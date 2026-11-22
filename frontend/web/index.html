@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Airfoil AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="estilos.css">
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@4.1.1/plotly.min.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="barra">
+    <a class="marca" href="#/catalogo">Airfoil AI</a>
+    <nav class="pestanas" aria-label="Secciones">
+      <a href="#/catalogo" data-vista="catalogo">Catálogo</a>
+      <a href="#/comparar" data-vista="comparar">Comparador <span class="contador" id="contador-comparador" hidden></span></a>
+      <a href="#/mapa" data-vista="mapa">Mapa</a>
+    </nav>
+  </header>
+
+  <main id="contenido">
+    <!-- Catálogo -->
+    <section class="vista" id="vista-catalogo" hidden>
+      <aside class="filtros" aria-label="Filtros">
+        <h2>Filtros</h2>
+
+        <fieldset>
+          <legend>Familia</legend>
+          <div class="lista-familias" id="lista-familias"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Espesor máximo (% de la cuerda)</legend>
+          <div class="rango">
+            <label>desde <input type="number" id="espesor-min" min="0" max="100" step="0.5" inputmode="decimal"></label>
+            <label>hasta <input type="number" id="espesor-max" min="0" max="100" step="0.5" inputmode="decimal"></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Curvatura máxima (% de la cuerda)</legend>
+          <div class="rango">
+            <label>desde <input type="number" id="curvatura-min" min="-100" max="100" step="0.5" inputmode="decimal"></label>
+            <label>hasta <input type="number" id="curvatura-max" min="-100" max="100" step="0.5" inputmode="decimal"></label>
+          </div>
+        </fieldset>
+
+        <button type="button" class="boton-secundario" id="quitar-filtros">Quitar filtros</button>
+      </aside>
+
+      <div class="resultados">
+        <div class="resultados-cabecera">
+          <p class="recuento" id="recuento" aria-live="polite"></p>
+          <label class="buscador">
+            <span class="oculto">Buscar perfil por nombre</span>
+            <input type="search" id="buscar" placeholder="Buscar por nombre o archivo">
+          </label>
+        </div>
+        <p class="aviso" id="aviso-catalogo" hidden></p>
+        <div class="tabla-contenedor">
+          <table class="tabla" id="tabla-perfiles">
+            <thead>
+              <tr>
+                <th scope="col" class="col-comparar"><span class="oculto">Comparar</span></th>
+                <th scope="col"><button type="button" data-orden="nombre">Perfil</button></th>
+                <th scope="col"><button type="button" data-orden="familia">Familia</button></th>
+                <th scope="col" class="num"><button type="button" data-orden="t_max">Espesor</button></th>
+                <th scope="col" class="num"><button type="button" data-orden="x_t_max">en x</button></th>
+                <th scope="col" class="num"><button type="button" data-orden="f_max">Curvatura</button></th>
+                <th scope="col" class="num"><button type="button" data-orden="x_f_max">en x</button></th>
+              </tr>
+            </thead>
+            <tbody id="cuerpo-tabla"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ficha de un perfil -->
+    <section class="vista" id="vista-perfil" hidden>
+      <a class="volver" href="#/catalogo">Volver al catálogo</a>
+      <div class="ficha-cabecera">
+        <div>
+          <h1 class="ficha-nombre" id="ficha-nombre"></h1>
+          <p class="ficha-detalle"><span id="ficha-familia" class="etiqueta-familia"></span> <span id="ficha-archivo" class="archivo"></span></p>
+          <p class="ficha-descripcion" id="ficha-descripcion"></p>
+        </div>
+        <button type="button" class="boton" id="ficha-comparar"></button>
+      </div>
+      <div class="grafico grafico-ficha" id="grafico-ficha" role="img" aria-label="Forma del perfil"></div>
+      <p class="leyenda-ficha">
+        <span class="muestra muestra-contorno"></span> Contorno
+        <span class="muestra muestra-media"></span> Línea media
+        <span class="muestra muestra-cuerda"></span> Cuerda
+      </p>
+      <dl class="datos" id="ficha-datos"></dl>
+    </section>
+
+    <!-- Comparador -->
+    <section class="vista" id="vista-comparar" hidden>
+      <div class="comparar-cabecera">
+        <h1>Comparador</h1>
+        <form class="anadir" id="form-anadir">
+          <label for="anadir-perfil">Añadir un perfil</label>
+          <input id="anadir-perfil" list="opciones-perfiles" placeholder="Escribe un nombre, p. ej. naca2412" autocomplete="off">
+          <datalist id="opciones-perfiles"></datalist>
+          <button type="submit" class="boton">Añadir</button>
+        </form>
+      </div>
+      <p class="aviso" id="aviso-comparar" hidden></p>
+      <ul class="seleccion" id="seleccion"></ul>
+      <div class="grafico grafico-comparar" id="grafico-comparar" role="img" aria-label="Perfiles superpuestos"></div>
+      <div class="tabla-contenedor">
+        <table class="tabla tabla-comparar" id="tabla-comparar"></table>
+      </div>
+    </section>
+
+    <!-- Mapa del dataset -->
+    <section class="vista" id="vista-mapa" hidden>
+      <div class="mapa-cabecera">
+        <div>
+          <h1>Mapa del dataset</h1>
+          <p class="explicacion">Cada punto es un perfil, situado según su curvatura y su espesor máximos. Pulsa un punto para abrir su ficha.</p>
+        </div>
+        <label class="destacar">Destacar familia
+          <select id="mapa-familia"></select>
+        </label>
+      </div>
+      <div class="grafico grafico-mapa" id="grafico-mapa" role="img" aria-label="Mapa de espesor frente a curvatura"></div>
+    </section>
+  </main>
+</body>
+</html>
