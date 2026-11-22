@@ -1,6 +1,6 @@
 # API
-
 API con FastAPI que da acceso a los datos de la base de datos ([`base_datos.md`](base_datos.md)): catálogo de perfiles con filtros, ficha de cada perfil y coordenadas de su contorno. Es la capa intermedia entre la base de datos y la interfaz web, y en las siguientes fases servirá también las polares de XFOIL, el modelo de predicción y el diseño de perfiles.
+
 
 ## Resumen
 
