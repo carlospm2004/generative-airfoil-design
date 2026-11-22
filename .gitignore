@@ -19,3 +19,7 @@ Thumbs.db
 
 # --- Editor ---
 .vscode/
+
+# --- Variables de entorno ---
+# Contienen contraseñas, no se suben (.env.example sí)
+.env
