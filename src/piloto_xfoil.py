@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 from polares import calidad_polar, marcar_post_perdida
-from xfoil import ALFA_MAX, calcular_polar
+from xfoil import ALFA_MAX, REYNOLDS, calcular_polar
 
 RUTA_CATALOGO = Path("data/processed/perfiles.csv")
 RUTA_RESUMEN = Path("data/processed/piloto_calculos.csv")
@@ -14,8 +14,6 @@ RUTA_POLARES = Path("data/processed/piloto_polares.csv")
 
 N_PERFILES = 50
 SEMILLA = 42
-REYNOLDS = [5e4, 1e5, 2e5, 5e5, 1e6, 3e6, 6e6, 9e6]
-
 
 if __name__ == "__main__":
     catalogo = pd.read_csv(RUTA_CATALOGO)
