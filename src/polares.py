@@ -6,6 +6,10 @@ RANGO_LINEAL = (-2.0, 6.0)        # grados; ajuste de la pendiente en perfiles d
 ZONA_LINEAL = (-2.0, 10.0)        # grados; zona antes de la pérdida que debe estar bien cubierta
 PASO_ALFA = 0.5
 
+# Criterio de validez de una polar (decidido con el piloto, ver docs)
+COBERTURA_MINIMA = 0.8            # fracción de los ángulos de la zona lineal que deben haber convergido
+HUECO_MAXIMO = 1.0                # grados; solo se admiten puntos sueltos sin converger en la zona lineal
+
 
 def caracteristicas_polar(polar):
     """Devuelve las características principales de una polar (DataFrame de xfoil.calcular_polar)."""
@@ -32,22 +36,26 @@ def calidad_polar(polar, alfa_max):
     - cobertura_lineal: fracción de los puntos posibles de la zona lineal que han convergido.
     - hueco_lineal: mayor salto entre dos ángulos convergidos dentro de la zona lineal (grados).
     - alfa_cl_max, cl_max_en_limite: dónde está el CL máximo y si coincide con el último ángulo posible.
+    - valida: cumple la cobertura mínima y el hueco máximo en la zona lineal.
     """
     a, b = ZONA_LINEAL
     posibles = int(round((b - a) / PASO_ALFA))          # ángulos en (a, b]: 24
     if polar.empty:
         return {"n_puntos": 0, "cobertura_lineal": 0.0, "hueco_lineal": np.nan,
-                "alfa_cl_max": np.nan, "cl_max_en_limite": False}
+                "alfa_cl_max": np.nan, "cl_max_en_limite": False, "valida": False}
     alfas = polar.loc[(polar["alpha"] > a) & (polar["alpha"] <= b), "alpha"].sort_values().to_numpy()
     # El hueco se mide incluyendo los extremos de la zona: si falta el principio o el final, también cuenta
     bordes = np.concatenate([[a], alfas, [b]]) if len(alfas) else np.array([a, b])
-    alfa_cl_max = polar.loc[polar["cl"].idxmax(), "alpha"]
+    alfa_cl_max = float(polar.loc[polar["cl"].idxmax(), "alpha"])
+    cobertura = len(alfas) / posibles
+    hueco = float(np.diff(bordes).max())
     return {
         "n_puntos": len(polar),
-        "cobertura_lineal": len(alfas) / posibles,
-        "hueco_lineal": np.diff(bordes).max(),
+        "cobertura_lineal": cobertura,
+        "hueco_lineal": hueco,
         "alfa_cl_max": alfa_cl_max,
-        "cl_max_en_limite": alfa_cl_max == alfa_max,
+        "cl_max_en_limite": alfa_cl_max == alfa_max,          # tipos de Python, no de numpy (para psycopg2)
+        "valida": bool(cobertura >= COBERTURA_MINIMA and hueco <= HUECO_MAXIMO),
     }
 
 
