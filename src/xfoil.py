@@ -21,7 +21,7 @@ PASO_ALFA = 0.5
 NCRIT = 9
 ITERACIONES = 100
 N_PANELES = 160
-TIEMPO_MAXIMO = 60          # segundos por polar; si se supera, se da por fallida
+TIEMPO_MAXIMO = 20          # segundos por polar; la más lenta del piloto tardó 10,5 s
 
 COLUMNAS = ["alpha", "cl", "cd", "cdp", "cm", "top_xtr", "bot_xtr"]
 LINEAS_CABECERA = 12        # líneas de texto antes de los datos en el archivo de la polar
@@ -62,6 +62,7 @@ def calcular_polar(archivo, reynolds, n_paneles=N_PANELES):
     """Calcula la polar de un perfil a un Reynolds.
 
     Devuelve (estado, polar, segundos), con estado "ok", "sin_convergencia" o "tiempo_agotado".
+    Una polar con "tiempo_agotado" puede traer los puntos calculados antes de que XFOIL se colgara.
     """
     inicio = time.perf_counter()
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as carpeta:
@@ -76,11 +77,15 @@ def calcular_polar(archivo, reynolds, n_paneles=N_PANELES):
                 capture_output=True,
                 timeout=TIEMPO_MAXIMO,
             )
+            estado = "ok"
         except subprocess.TimeoutExpired:
-            return "tiempo_agotado", pd.DataFrame(columns=COLUMNAS, dtype=float), time.perf_counter() - inicio
+            estado = "tiempo_agotado"
+        # XFOIL escribe cada punto en el archivo según converge: si se ha colgado,
+        # se recuperan los puntos que calculó antes de colgarse
         polar = leer_polar(carpeta / "polar.txt")
 
-    estado = "ok" if len(polar) > 0 else "sin_convergencia"
+    if estado == "ok" and polar.empty:
+        estado = "sin_convergencia"
     return estado, polar, time.perf_counter() - inicio
 
 
