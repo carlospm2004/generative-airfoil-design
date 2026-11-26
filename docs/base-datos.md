@@ -1,13 +1,14 @@
 # Base de datos
 
-Base de datos PostgreSQL con el catálogo de la Fase 1 (`data/processed/perfiles.csv`) y las coordenadas de todos los perfiles limpios (`data/processed/perfiles/*.dat`). Es la fuente de datos de la API y de la herramienta de visualización, y en la Fase 2 guardará también los resultados de XFOIL.
+Base de datos PostgreSQL con el catálogo de la Fase 1 (`data/processed/perfiles.csv`) y las coordenadas de todos los perfiles limpios (`data/processed/perfiles/*.dat`). Es la fuente de datos de la API y de la herramienta de visualización. Desde la Fase 2 guarda también los resultados de XFOIL, en las tablas `calculos` y `polares` (ver [`xfoil.md`](xfoil.md)).
 
 ## Resumen
 
 | Elemento | Archivo | Resultado |
 |---|---|---|
 | Servicio de PostgreSQL | `docker-compose.yml`, `.env` | PostgreSQL 17 en Docker, puerto 5432 |
-| Esquema | `sql/esquema.sql` | Tablas `perfiles` y `coordenadas` |
+| Esquema | `sql/001_esquema.sql` | Tablas `perfiles` y `coordenadas` |
+| Migraciones de la Fase 2 | `sql/002_polares.sql`, `sql/003_reintento.sql` | Tablas `calculos` y `polares` |
 | Carga y validación | `src/cargar_bd.py` | 1.656 perfiles y 110.767 puntos |
 
 ## 1. Arquitectura
@@ -30,7 +31,7 @@ La base de datos se ejecuta en un contenedor con la imagen oficial `postgres:17`
 
 ### Por qué el esquema está en el repositorio
 
-Las tablas se podrían crear a mano desde `psql`, pero entonces su definición solo existiría dentro de una base concreta. Con `sql/esquema.sql` en el repositorio:
+Las tablas se podrían crear a mano desde `psql`, pero entonces su definición solo existiría dentro de una base concreta. Con los archivos de `sql/` en el repositorio:
 
 - cualquiera que clone el proyecto obtiene exactamente la misma base;
 - los cambios en las tablas quedan en el historial de Git;
@@ -80,14 +81,15 @@ Clave primaria: **(`archivo`, `orden`)**.
 `src/cargar_bd.py` hace la carga completa:
 
 1. **Lectura.** Lee `perfiles.csv` y, para cada perfil del catálogo, su archivo `.dat`. Todo se prepara en memoria antes de conectar con la base: si un archivo falla, la base no se toca.
-2. **Vaciado.** `TRUNCATE perfiles CASCADE` vacía las dos tablas.
-3. **Inserción.** Primero `perfiles` y después `coordenadas`, porque la clave foránea exige que el perfil exista antes que sus puntos.
+2. **Vaciado de las coordenadas.** `TRUNCATE coordenadas`. La tabla `perfiles` no se vacía (ver decisiones).
+3. **Inserción.** Primero `perfiles`, con un *upsert* que inserta los nuevos y actualiza los existentes, y después `coordenadas`, porque la clave foránea exige que el perfil exista antes que sus puntos. Los perfiles que ya no están en el catálogo se borran.
 4. **Validación.** Compara lo que hay en la base con lo que se ha leído.
 
 ### Decisiones
 
-- **Idempotente.** Gracias al vaciado inicial, el script se puede ejecutar varias veces y la base siempre queda igual, como el resto de scripts, que regeneran `data/` desde cero.
-- **Una sola transacción.** El vaciado y las inserciones se confirman juntos. Si algo falla a mitad (por ejemplo, un valor vacío en una columna `NOT NULL`), se deshace todo, incluido el vaciado: la base nunca queda cargada a medias.
+- **Idempotente.** El script se puede ejecutar varias veces y la base siempre queda igual, como el resto de scripts, que regeneran `data/` desde cero.
+- **Sin borrar los resultados de XFOIL.** Al principio el script vaciaba `perfiles` con `TRUNCATE perfiles CASCADE`. Desde la Fase 2, las tablas `calculos` y `polares` dependen de `perfiles`, y ese vaciado borraría en cascada unas 15 horas de cálculo. Por eso los perfiles se cargan con `INSERT ... ON CONFLICT (archivo) DO UPDATE` (*upsert*): se actualizan sin borrarse.
+- **Una sola transacción.** El vaciado de las coordenadas y las inserciones se confirman juntos. Si algo falla a mitad (por ejemplo, un valor vacío en una columna `NOT NULL`), se deshace todo, incluido el vaciado: la base nunca queda cargada a medias.
 - **Coordenadas a partir del catálogo.** Se recorren los perfiles de `perfiles.csv` y no la carpeta de `.dat`, así que nunca se intenta insertar un punto de un perfil que no está en la tabla `perfiles`.
 - **NaN → `NULL`.** Para pandas, NaN significa "vacío", pero para PostgreSQL es un número válido. Los NaN se convierten en `None` (`NULL` en SQL) para que las consultas del tipo `WHERE x_f_max IS NULL` funcionen.
 - **Tipos de Python.** psycopg2 no sabe guardar algunos tipos de numpy (`numpy.bool_`), así que los valores se convierten antes a `float`, `bool` y `str` de Python.
@@ -124,6 +126,6 @@ docker compose exec db psql -U airfoil -d airfoil -c "SELECT x, y FROM coordenad
 
 ## 6. Limitaciones y pasos futuros
 
-- **El esquema solo se aplica al crear la base.** PostgreSQL ejecuta `sql/` únicamente cuando el volumen está vacío. Si se cambia `esquema.sql`, hay que borrar el volumen y volver a cargar: `docker compose down -v`, `docker compose up -d` y `python src/cargar_bd.py`. Mientras todos los datos se puedan regenerar con scripts, es suficiente.
-- **Migraciones.** Cuando la base guarde datos costosos de regenerar, como las polares de XFOIL de la Fase 2, los cambios de esquema se harán con migraciones (archivos numerados que modifican una base existente) en lugar de borrarla.
+- **Migraciones.** PostgreSQL ejecuta los archivos de `sql/` por orden alfabético, y solo al crear una base nueva (con el volumen vacío). Por eso llevan un número delante (`001_`, `002_`, `003_`). En una base que ya existe, cada migración nueva se aplica a mano, una sola vez: `docker compose exec -T db psql -U airfoil -d airfoil < sql/00N_....sql`. Una migración ya aplicada no se modifica nunca: los cambios van en un archivo nuevo.
+- **Borrar el volumen ya no es gratis.** `docker compose down -v` borra también las polares de XFOIL, que cuestan unas 15 horas de recalcular.
 - **Puerto 5432 ocupado.** Si ya hay otro PostgreSQL en el ordenador, el contenedor no arranca. Basta con cambiar el puerto del ordenador en `docker-compose.yml` (por ejemplo, `"5433:5432"`) y el del script.
