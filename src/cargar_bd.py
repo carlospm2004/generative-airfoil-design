@@ -56,15 +56,21 @@ if __name__ == "__main__":
 
     with conectar() as conn:
         with conn.cursor() as cur:
-            # Vaciar antes de cargar: el script se puede ejecutar varias veces
-            cur.execute("TRUNCATE perfiles CASCADE")
+            # Las coordenadas se vacían y se vuelven a cargar. Los perfiles NO se vacían:
+            # un TRUNCATE de perfiles borraría en cascada los cálculos de XFOIL (horas de cálculo).
+            cur.execute("TRUNCATE coordenadas")
 
-            # Primero perfiles: la clave foránea de coordenadas apunta a ellos
+            # Perfiles: se insertan los nuevos y se actualizan los que ya existen (upsert)
+            actualizar = ", ".join(f"{c} = EXCLUDED.{c}" for c in COLUMNAS_PERFILES if c != "archivo")
             execute_values(
                 cur,
-                f"INSERT INTO perfiles ({', '.join(COLUMNAS_PERFILES)}) VALUES %s",
+                f"INSERT INTO perfiles ({', '.join(COLUMNAS_PERFILES)}) VALUES %s "
+                f"ON CONFLICT (archivo) DO UPDATE SET {actualizar}",
                 perfiles,
             )
+            # Los perfiles que ya no están en el catálogo se borran (con sus cálculos)
+            cur.execute("DELETE FROM perfiles WHERE archivo <> ALL(%s)", (list(catalogo["archivo"]),))
+
             execute_values(
                 cur,
                 "INSERT INTO coordenadas (archivo, orden, x, y) VALUES %s",

@@ -25,7 +25,7 @@ La idea es ir avanzando por fases, aplicando en cada una lo que vamos viendo en 
 
 ## Alcance
 
-El proyecto se centra en **perfiles para aeronaves de ala fija en régimen subsónico**, con números de Reynolds entre 5·10⁴ y 3·10⁶: drones, alas volantes, planeadores y aviación ligera.
+El proyecto se centra en **perfiles para aeronaves de ala fija en régimen subsónico**, con números de Reynolds entre 5·10⁴ y 9·10⁶: drones, alas volantes, planeadores y aviación ligera, hasta su velocidad de crucero.
 
 Es el régimen en el que XFOIL, el simulador del proyecto, es fiable. Los aviones comerciales vuelan a velocidades transónicas, donde aparecen ondas de choque que XFOIL no puede modelar.
 
@@ -65,11 +65,11 @@ Avance:
 
 La herramienta irá creciendo con el proyecto: en cada fase se le añadirán los nuevos resultados, hasta convertirse en la interfaz final.
 
-### Fase 2 — Generación de datos a gran escala
+### Fase 2 — Generación de datos a gran escala ✅
 
-- [ ] Automatizar el simulador para calcular el rendimiento de todos los perfiles en distintas condiciones de vuelo.
-- [ ] Filtrar los casos en los que la simulación falla.
-- [ ] Guardar todos los resultados en una base de datos y analizarlos.
+- [x] Automatizar el simulador para calcular el rendimiento de todos los perfiles en distintas condiciones de vuelo: 13.248 polares (1.656 perfiles × 8 números de Reynolds), validadas con la teoría.
+- [x] Filtrar los casos en los que la simulación falla: criterio de validez decidido con un piloto y dos experimentos; 10.802 polares válidas (81,5 %).
+- [x] Guardar todos los resultados en una base de datos y analizarlos (ver [`docs/xfoil.md`](docs/xfoil.md)).
 
 ### Fase 3 — Predicción del rendimiento
 
@@ -137,11 +137,25 @@ docker compose up -d --build       # levanta PostgreSQL (crea las tablas), la AP
 python src/cargar_bd.py            # carga el catálogo y las coordenadas, y valida la carga
 ```
 
-Resultado: **1.656 perfiles** en la tabla `perfiles` y **110.767 puntos** en la tabla `coordenadas`. El script se puede ejecutar tantas veces como se quiera: cada vez vacía las tablas y las vuelve a cargar.
+Resultado: **1.656 perfiles** en la tabla `perfiles` y **110.767 puntos** en la tabla `coordenadas`. El script se puede ejecutar tantas veces como se quiera: vuelve a cargar las coordenadas y actualiza los perfiles sin borrar los resultados de XFOIL.
 
 La interfaz web queda en [`http://localhost:8080`](http://localhost:8080). La API, en `http://localhost:8000`, con su documentación interactiva en [`http://localhost:8000/docs`](http://localhost:8000/docs).
 
 Para pararlo todo sin perder los datos: `docker compose down`.
+
+### 5. Calcular las polares con XFOIL
+
+Hace falta [XFOIL](https://web.mit.edu/drela/Public/web/xfoil/) instalado, con su ruta en `.env` (`XFOIL_PATH`, ver `.env.example`), y la base de datos del paso 4 levantada.
+
+```bash
+python src/validar_xfoil.py        # comprueba XFOIL con los NACA 0012 y 2412
+python src/calcular_polares.py     # 13.248 polares en la base de datos (≈ 15 h, se puede interrumpir y reanudar)
+python src/analizar_polares.py     # análisis físico y figuras en docs/figuras/
+```
+
+Resultado: **10.802 polares válidas (81,5 %)** y 562.555 puntos. Detalles en [`docs/xfoil.md`](docs/xfoil.md).
+
+> `docker compose down -v` borra también las polares calculadas. Úsalo solo si quieres empezar de cero.
 
 ## Estructura del repositorio
 
@@ -161,20 +175,27 @@ Para pararlo todo sin perder los datos: `docker compose down`.
 │   ├── clasificacion.md   ← familias y catálogo final
 │   ├── base-datos.md      ← base de datos: esquema, carga y validación
 │   ├── api.md             ← API: endpoints, decisiones y Docker
-│   └── frontend.md        ← interfaz web: vistas, arquitectura y Docker
+│   ├── frontend.md        ← interfaz web: vistas, arquitectura y Docker
+│   ├── xfoil.md           ← polares con XFOIL: condiciones, validación, calidad y resultados
+│   └── figuras/           ← figuras de la documentación
 ├── frontend/              ← interfaz web, servida por nginx
 │   ├── web/               ← index.html, estilos.css y app.js
 │   ├── nginx.conf         ← sirve la web y reenvía /api a la API
 │   └── Dockerfile         ← imagen del frontend
 ├── notebooks/             ← exploración
-├── sql/
-│   └── esquema.sql        ← tablas de la base de datos
+├── sql/                   ← esquema y migraciones, en orden
+│   ├── 001_esquema.sql    ← perfiles y coordenadas
+│   ├── 002_polares.sql    ← cálculos y polares de XFOIL
+│   └── 003_reintento.sql  ← columna reintento
 ├── src/                   ← código
 │   ├── lector.py          ← lee un .dat y detecta anomalías
 │   ├── limpieza.py        ← exclusiones, duplicados y normalización
 │   ├── geometria.py       ← espesor, curvatura, borde de salida y área
 │   ├── familias.py        ← familia de cada perfil a partir de su descripción
 │   ├── cargar_bd.py       ← carga el catálogo y las coordenadas en PostgreSQL
+│   ├── xfoil.py           ← calcula la polar de un perfil con XFOIL
+│   ├── polares.py         ← características y calidad de una polar
+│   ├── calcular_polares.py ← cálculo completo de las polares, reanudable
 │   └── ...                ← scripts de preparación, generación y validación
 ├── docker-compose.yml     ← servicios de PostgreSQL, la API y la interfaz web
 ├── .env.example           ← plantilla de las variables de entorno (copiar a .env)
